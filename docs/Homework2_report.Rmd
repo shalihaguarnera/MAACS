@@ -1,0 +1,212 @@
+---
+title: "Homework 2 Report"
+output: html_document
+---
+
+
+## Name
+
+Shaliha Guarnera
+
+### Setup
+
+Read in the data with `read_csv()` and store the data as an R object named `dataset`. Check the data to make sure all of the expected observations and variables are there.
+
+
+```{r message=FALSE}
+## Load the data and any necessary packages here.
+library(tidyverse)
+dataset <- read_csv("maacs.csv.gz")
+
+```
+
+## Part 1
+
+We will first consider the relationship between FEV1 and age. In general, it is expected that as children get older (and hence, larger in size), their FEV1 values should get higher. 
+
+Consider the statement "FEV1 values in children are higher in older children relative to younger children". 
+
+Write a function in R that takes the `dataset` object as an argument and returns `TRUE` if the statement above is true for the dataset and `FALSE` otherwise. 
+
+NOTE: In order to write this function, you will need to translate the statement above into something that can be checked with the data. There are many ways in which you can do that translation correctly and you only need to pick one way here. 
+
+NOTE: For this part, do not use any plots.
+
+```{r}
+## Write your function here
+check_statement <- function(dataset) {
+  linmod <- lm(fev1 ~ age, data = dataset)
+  beta1 <- linmod$coefficients["age"]
+  if (beta1 > 0){
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+check_statement(dataset)
+
+```
+
+
+## Part 2
+
+Fit a linear regression model with FEV1 as the outcome and age as a predictor.
+
+How much does FEV1 change for a 1-year increase in the child's age? 
+
+```{r}
+## Add your code here
+linmod <- lm(fev1 ~ age, data = dataset)
+linmod$coefficients
+
+```
+
+
+Write your data analysis statement interpreting the regression model here:
+
+The expected difference in FEV1 is 0.171162 liters when the age happens to differ by 1 year.
+
+
+
+## Part 3
+
+Develop **three** supporting premises derived from the data that support the statement you wrote in Part 2. These can be plots, other summary statistics, or model results. 
+
+NOTE: 
+
+* At least one supporting premise should use a plot.
+
+* Do not use the code you write in Part 1 as a supporting premise
+
+```{r warning = FALSE, message = FALSE}
+## Add your code here
+
+# Premise 1
+ggplot(dataset, aes(x = age, y = fev1)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Age vs. FEV1 Levels", 
+       x = "Age (Years)", 
+       y = "FEV1 (Liters)")
+
+# Premise 2
+confint(linmod, "age", level = 0.95)
+
+# Premise 3
+dataset1 <- na.omit(dataset)
+cor(dataset1$age, dataset1$fev1)
+
+```
+
+
+Write the three supporting premise statements here:
+
+1. The fitted regression line for the Age vs. FEV1 scatter plot shows a positive trend in FEV1 as age increases, with a slope of 0.171162.
+
+2. The 95% confidence interval of the estimated slope coefficient contains 0.171162, suggesting that FEV1 levels increase as children get older.
+
+3. The correlation coefficient between age and FEV1 is positive, suggesting that FEV1 levels increase as children get older.
+
+
+## Part 4
+
+For each of the supporting premises above, write a function that takes the `dataset` object as an argument and returns `TRUE` if the supporting premise statement above is true for the dataset and `FALSE` otherwise. 
+
+For statements involving plots, instead of returning `TRUE` or `FALSE`, you function should do two things:
+
+1. Produce the plot that is used in the statement
+
+2. Produce a hypothetical version of the plot in the event that the statement is true. This can be done using simulated data or by simply hand drawing a plot.
+
+
+```{r warning=FALSE, message = FALSE}
+## Function for supporting premise statement 1
+produce_plot <- function(dataset) {
+  # Produce plot that is used in the statement
+  plot1 <- ggplot(dataset, aes(x = age, y = fev1)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = FALSE) +
+    theme_minimal() +
+    labs(title = "Age vs. FEV1 Levels", 
+         x = "Age (Years)", 
+         y = "FEV1 (Liters)")
+  
+  # Produce a hypothetical version
+  n = 150
+  beta1 <- linmod$coefficients[2]
+  sigma <- summary(linmod)$coefficients[2,2]
+  e <- rnorm(n, mean = 0, sd = 5)
+  x <- rnorm(n, mean = 12, sd = 7)
+  y <- beta1 * x + e
+  hyp_data <- data.frame(age = x, fev1 = y)
+  
+  plot2 <- ggplot(hyp_data, aes(x = age, y = fev1)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = FALSE) +
+    theme_minimal() +
+    labs(title = "Simulated Age vs. FEV1 Levels", 
+         x = "Age (Years)", 
+         y = "FEV1 (Liters)")
+  
+  print(plot1)
+  print(plot2)
+}
+produce_plot(dataset)
+
+```
+
+
+```{r}
+## Function for supporting premise statement 2
+check_premise_2 <- function(dataset) {
+  linmod <- lm(fev1 ~ age, data = dataset)
+  beta1 <- linmod$coefficients[2]
+  conf_int <- confint(linmod, "age", level = 0.95)
+  
+  lower_bound <- conf_int[1]
+  upper_bound <- conf_int[2]
+  
+  if(lower_bound < beta1 & beta1 < upper_bound) {
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+check_premise_2(dataset)
+
+```
+
+
+```{r}
+## Function for supporting premise statement 3
+check_premise_3 <- function(dataset) {
+  dataset1 <- na.omit(dataset) # Removing NA values
+  cor_coeff <- cor(dataset1$age, dataset1$fev1)
+  if (cor_coeff > 0){
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+check_premise_3(dataset)
+
+```
+
+Execute each of your function and show that the produce the expected output.
+
+
+
+
+## Part 5
+
+Describe one alternative to the primary statement "FEV1 values in children are higher in older children relative to younger children". 
+
+Create a fault tree for the alternative outcome describing how the alternative outcome could be realized in the data even if the primary statement were true.
+
+Your fault tree should be created as a separate image and does not need to be created in R. Upload the image of the fault tree to Canvas.
+
+
